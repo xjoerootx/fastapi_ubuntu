@@ -6,9 +6,9 @@ from router import router as date_router
 app = FastAPI()
 app.include_router(date_router)
 
-@app.on_event("startup")
-async def startup_event():
-    await init_tables()
+# @app.on_event("startup")
+# async def startup_event():
+#     await init_tables()
 
 
 if __name__ == '__main__':

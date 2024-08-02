@@ -16,13 +16,13 @@ router = APIRouter(
     prefix="/table",
     tags=["Документы"]
 )
-@router.on_event("startup")
-async def startup_event() -> None:
-    """
-    :return
-           Инициализация таблиц
-    """
-    await init_tables()
+# @router.on_event("startup")
+# async def startup_event() -> None:
+#     """
+#     :return
+#            Инициализация таблиц
+#     """
+#     await init_tables()
 
 #ВВОД ДАННЫХ В ТАБЛИЦУ
 @router.post("/add_date/")
@@ -32,7 +32,7 @@ async def add_date(date: DocumentsAdd):
     :return: Результаты операции и id нового документа
     """
     async with new_session() as session:
-        task = Documents(**date.dict())
+        task = Documents(**date.model_dump())
         session.add(task)
         await session.flush()
         await session.commit()

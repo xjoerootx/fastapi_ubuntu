@@ -1,32 +1,60 @@
+import pytest
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import sessionmaker
+from database import Base
+from main import app
+
+DATABASE_URL = "postgresql+asyncpg://joeroot:586653182@localhost/test1_db"
+engine = create_async_engine(DATABASE_URL, echo=True)
+try:
+    from main import app
+except (NameError, ImportError):
+    raise AssertionError('НЕ НАЙДЕНО ПРИЛОЖЕНИЕ')
+@pytest.fixture(scope="session")
+async def async_client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
+@pytest.fixture(scope="session", autouse=True)
+async def test_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture(scope="function")
+async def session():
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        yield session
+
+
 # import pytest
-# from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+# from httpx import AsyncClient, ASGITransport
+# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 # from sqlalchemy.orm import sessionmaker
-# from async_session import Base, get_session
-# from config import DB_USER, DB_PASS, DB_HOST, DB_NAME
-# import asyncio
+# from database import Base
+# from main import app
 #
-# # Настройка тестовой базы данных
-# TEST_DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}/test_{DB_NAME}"
+# DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/test1_db"
+# engine = create_async_engine(DATABASE_URL, echo=True)
 #
 # @pytest.fixture(scope="session")
-# async def test_engine():
-#     engine = create_async_engine(TEST_DATABASE_URL, echo=True)
+# async def async_client():
+#     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+#         yield client
+#
+# @pytest.fixture(scope="function", autouse=True)
+# async def setup_db():
 #     async with engine.begin() as conn:
 #         await conn.run_sync(Base.metadata.create_all)
-#     yield engine
-#     await engine.dispose()
+#     yield
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.drop_all)
 #
 # @pytest.fixture(scope="function")
-# async def test_session(test_engine):
-#     session = sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)()
-#     yield session
-#     await session.close()
-#
-# @pytest.fixture(scope="function")
-# async def client(test_session):
-#     from fastapi.testclient import TestClient
-#     from main import app
-#
-#     app.dependency_overrides[get_session] = lambda: test_session
-#     with TestClient(app) as client:
-#         yield client
+# async def session():
+#     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+#     async with async_session() as session:
+#         yield session
